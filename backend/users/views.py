@@ -1,28 +1,22 @@
 import base64
-from django.contrib.auth import get_user_model
-from django.shortcuts import get_object_or_404
-from rest_framework import status, viewsets, permissions
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from djoser.views import UserViewSet
-from api.serializers import UserSerializer
-from .models import Follow, User
-from .serializers import SubscriptionSerializer, SubscribeSerializer, UserAvatarSerializer
-from api.pagination import CustomPagination
-from rest_framework.permissions import AllowAny, IsAuthenticated
-from django.core.files.base import ContentFile
-import base64
-import uuid
-from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-from django.core.exceptions import ObjectDoesNotExist
-import os
-from django.core.files.storage import default_storage
 
 from django.core.files.base import ContentFile
-
 from django.core.exceptions import ValidationError
 
-User = get_user_model()
+from rest_framework import status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+
+from djoser.views import UserViewSet
+
+from api.serializers import UserSerializer
+from .models import Follow, User
+from .serializers import (
+    SubscriptionSerializer, SubscribeSerializer, UserAvatarSerializer
+)
+from api.pagination import CustomPagination
 
 
 class CustomUserViewSet(UserViewSet):
@@ -69,78 +63,42 @@ class CustomUserViewSet(UserViewSet):
         user = request.user
 
         if request.method == 'DELETE':
-            # Проверяем, есть ли аватар у пользователя
             if user.avatar:
-                # Удаляем файл аватара
                 user.avatar.delete()
                 user.avatar = None
                 user.save()
-                # Возвращаем статус 204 (No Content)
                 return Response(status=status.HTTP_204_NO_CONTENT)
 
-        # Если аватар не был найден
             return Response(
                 {'error': 'Аватар не найден'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         if request.method == 'PUT':
-            # Получаем данные аватара из JSON
             avatar_data = request.data.get('avatar', None)
 
             if not avatar_data:
-                return Response({'error': 'Не предоставлен файл аватара'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {'error': 'Не предоставлен файл аватара'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
             try:
-                # Проверяем, что данные имеют формат base64
                 if avatar_data.startswith('data:image'):
-                    # Извлекаем часть после запятой (base64 строка)
                     format, imgstr = avatar_data.split(';base64,')
-                # Декодируем строку base64
                     imgdata = base64.b64decode(imgstr)
-                # Сохраняем файл аватара
                     image = ContentFile(imgdata)
-                # Устанавливаем расширение для файла
                     user.avatar.save(f'{user.id}_avatar.png', image, save=True)
                     user.save()
 
-                # Используем сериализатор для правильного ответа
                     serializer = UserAvatarSerializer(user)
                     return Response(serializer.data, status=status.HTTP_200_OK)
                 else:
                     raise ValidationError("Неверный формат аватара")
             except (ValueError, TypeError, ValidationError) as e:
-                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-    # @action(
-    #     detail=False,
-    #     methods=['put', 'delete'],
-    #     permission_classes=[IsAuthenticated],
-    #     url_path='me/avatar',
-    #     url_name='me_avatar'
-    # )
-    # def me_avatar(self, request):
-    #     user = request.user
-
-    #     if request.method == 'DELETE':
-    #         if user.avatar:
-    #             user.avatar.delete()
-    #             user.avatar = None
-    #             user.save()
-    #         return Response(status=status.HTTP_204_NO_CONTENT)
-
-    #     if 'avatar' not in request.FILES:
-    #         return Response(
-    #             {'error': 'Не предоставлен файл аватара'},
-    #             status=status.HTTP_400_BAD_REQUEST
-    #         )
-
-    #     user.avatar = request.FILES['avatar']
-    #     user.save()
-
-    #     # Используем сериализатор для правильного ответа
-    #     serializer = UserAvatarSerializer(user)
-    #     return Response(serializer.data, status=status.HTTP_200_OK)
+                return Response(
+                    {'error': str(e)}, status=status.HTTP_400_BAD_REQUEST
+                )
 
     @action(
         detail=True,

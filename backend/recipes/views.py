@@ -1,4 +1,6 @@
 import base64
+import shortuuid
+
 from django.core.files.base import ContentFile
 from django.db.models import Sum, Exists, OuterRef, Value
 from django.http import HttpResponse
@@ -8,10 +10,10 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
+
 from api.filters import RecipeFilter, IngredientFilter
 from .models import (
-    Tag, Ingredient, Recipe, Favorite,
-    ShoppingCart, RecipeIngredient
+    Tag, Ingredient, Recipe, Favorite, ShoppingCart, RecipeIngredient
 )
 from .serializers import (
     RecipeSerializer,
@@ -22,7 +24,6 @@ from .serializers import (
 )
 from api.permissions import IsAuthorOrReadOnly
 from api.pagination import CustomPagination
-import shortuuid
 
 
 def decode_base64_image(base64_string):
@@ -130,7 +131,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
         permission_classes=[AllowAny]
     )
     def get_link(self, request, pk=None):
-        recipe = self.get_object()
         short_uuid = shortuuid.uuid()[:8]
         short_link = f"http://{request.get_host()}/r/{short_uuid}"
 
@@ -148,7 +148,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
         recipe = get_object_or_404(Recipe, id=pk)
 
         if request.method == 'POST':
-            if Favorite.objects.filter(user=request.user, recipe=recipe).exists():
+            if Favorite.objects.filter(
+                user=request.user, recipe=recipe
+            ).exists():
                 return Response(
                     {'errors': 'Рецепт уже в избранном'},
                     status=status.HTTP_400_BAD_REQUEST
@@ -183,7 +185,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
             )
 
         if request.method == 'POST':
-            if ShoppingCart.objects.filter(user=request.user, recipe=recipe).exists():
+            if ShoppingCart.objects.filter(user=request.user,
+                                           recipe=recipe).exists():
                 return Response(
                     {'errors': 'Рецепт уже в списке покупок'},
                     status=status.HTTP_400_BAD_REQUEST

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.utils.html import format_html
+
 from .models import (
     Tag, Ingredient, Recipe,
     RecipeIngredient, Favorite,
@@ -55,8 +55,6 @@ class ShoppingCartAdmin(admin.ModelAdmin):
         'user__email',
         'recipe__name'
     )
-
-# Регистрация модели RecipeIngredient отдельно, если нужен доступ к ней
 
 
 @admin.register(RecipeIngredient)

@@ -1,11 +1,11 @@
-from rest_framework import serializers
-from django.core.validators import MinValueValidator
-from .models import Tag, Ingredient, Recipe, RecipeIngredient
-from api.serializers import UserSerializer
 import base64
+
 from django.core.files.base import ContentFile
 from django.shortcuts import get_object_or_404
-from drf_extra_fields.fields import Base64ImageField
+from rest_framework import serializers
+
+from .models import Tag, Ingredient, Recipe, RecipeIngredient
+from api.serializers import UserSerializer
 
 
 class Base64ImageField(serializers.ImageField):
@@ -92,9 +92,9 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         )
 
     def validate(self, data):
-        if self.instance is None:  # При создании
+        if self.instance is None:
             required_fields = ['ingredients', 'tags']
-        else:  # При обновлении (PATCH)
+        else:
             required_fields = ['ingredients', 'tags']
 
         for field in required_fields:
