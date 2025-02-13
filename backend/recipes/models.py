@@ -14,7 +14,7 @@ class Tag(models.Model):
     color = models.CharField(
         max_length=7,
         unique=True,
-        verbose_name='Цветовой HEX-код'
+        verbose_name='Цвет в HEX'
     )
     slug = models.SlugField(
         max_length=200,
@@ -69,9 +69,11 @@ class Recipe(models.Model):
     )
     image = models.ImageField(
         upload_to='recipes/images/',
-        verbose_name='Изображение'
+        verbose_name='Картинка'
     )
-    text = models.TextField(verbose_name='Описание')
+    text = models.TextField(
+        verbose_name='Описание'
+    )
     ingredients = models.ManyToManyField(
         Ingredient,
         through='RecipeIngredient',
@@ -82,12 +84,7 @@ class Recipe(models.Model):
         verbose_name='Теги'
     )
     cooking_time = models.PositiveSmallIntegerField(
-        validators=[
-            MinValueValidator(
-                1, message='Минимальное время приготовления 1 минута'),
-            MaxValueValidator(
-                1440, message='Максимальное время приготовления 24 часа')
-        ],
+        validators=[MinValueValidator(1)],
         verbose_name='Время приготовления (в минутах)'
     )
     pub_date = models.DateTimeField(
@@ -117,12 +114,7 @@ class RecipeIngredient(models.Model):
         verbose_name='Ингредиент'
     )
     amount = models.PositiveSmallIntegerField(
-        validators=[
-            MinValueValidator(
-                1, message='Минимальное количество ингредиентов 1'),
-            MaxValueValidator(
-                10000, message='Максимальное количество ингредиентов 10000')
-        ],
+        validators=[MinValueValidator(1)],
         verbose_name='Количество'
     )
 

@@ -1,18 +1,26 @@
+import base64
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from rest_framework import status, viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from djoser.views import UserViewSet
-from recipes.serializers import RecipeMinifiedSerializer
+from api.serializers import UserSerializer
 from .models import Follow, User
-from .serializers import (
-    UserSerializer,
-    UserWithRecipesSerializer,
-    UserAvatarSerializer
-)
+from .serializers import SubscriptionSerializer, SubscribeSerializer, UserAvatarSerializer
 from api.pagination import CustomPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from django.core.files.base import ContentFile
+import base64
+import uuid
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from django.core.exceptions import ObjectDoesNotExist
+import os
+from django.core.files.storage import default_storage
+
+from django.core.files.base import ContentFile
+
+from django.core.exceptions import ValidationError
 
 User = get_user_model()
 
@@ -22,6 +30,7 @@ class CustomUserViewSet(UserViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     pagination_class = CustomPagination
+    parser_classes = (JSONParser, MultiPartParser, FormParser)
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
@@ -40,63 +49,131 @@ class CustomUserViewSet(UserViewSet):
 
     @action(
         detail=False,
-        methods=['get', 'put', 'delete'],
+        permission_classes=[IsAuthenticated]
+    )
+    def me(self, request):
+        serializer = UserSerializer(
+            request.user,
+            context={'request': request}
+        )
+        return Response(serializer.data)
+
+    @action(
+        detail=False,
+        methods=['put', 'delete'],
         permission_classes=[IsAuthenticated],
-        url_path='me/avatar'
+        url_path='me/avatar',
+        url_name='me_avatar'
     )
     def me_avatar(self, request):
-        if request.method == 'GET':
-            serializer = UserAvatarSerializer(request.user)
-            return Response(serializer.data)
-        elif request.method == 'PUT':
-            serializer = UserAvatarSerializer(
-                request.user,
-                data=request.data,
-                partial=True
-            )
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data)
+        user = request.user
+
+        if request.method == 'DELETE':
+            # Проверяем, есть ли аватар у пользователя
+            if user.avatar:
+                # Удаляем файл аватара
+                user.avatar.delete()
+                user.avatar = None
+                user.save()
+                # Возвращаем статус 204 (No Content)
+                return Response(status=status.HTTP_204_NO_CONTENT)
+
+        # Если аватар не был найден
             return Response(
-                serializer.errors,
+                {'error': 'Аватар не найден'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        elif request.method == 'DELETE':
-            request.user.avatar = None
-            request.user.save()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        if request.method == 'PUT':
+            # Получаем данные аватара из JSON
+            avatar_data = request.data.get('avatar', None)
+
+            if not avatar_data:
+                return Response({'error': 'Не предоставлен файл аватара'}, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                # Проверяем, что данные имеют формат base64
+                if avatar_data.startswith('data:image'):
+                    # Извлекаем часть после запятой (base64 строка)
+                    format, imgstr = avatar_data.split(';base64,')
+                # Декодируем строку base64
+                    imgdata = base64.b64decode(imgstr)
+                # Сохраняем файл аватара
+                    image = ContentFile(imgdata)
+                # Устанавливаем расширение для файла
+                    user.avatar.save(f'{user.id}_avatar.png', image, save=True)
+                    user.save()
+
+                # Используем сериализатор для правильного ответа
+                    serializer = UserAvatarSerializer(user)
+                    return Response(serializer.data, status=status.HTTP_200_OK)
+                else:
+                    raise ValidationError("Неверный формат аватара")
+            except (ValueError, TypeError, ValidationError) as e:
+                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    # @action(
+    #     detail=False,
+    #     methods=['put', 'delete'],
+    #     permission_classes=[IsAuthenticated],
+    #     url_path='me/avatar',
+    #     url_name='me_avatar'
+    # )
+    # def me_avatar(self, request):
+    #     user = request.user
+
+    #     if request.method == 'DELETE':
+    #         if user.avatar:
+    #             user.avatar.delete()
+    #             user.avatar = None
+    #             user.save()
+    #         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    #     if 'avatar' not in request.FILES:
+    #         return Response(
+    #             {'error': 'Не предоставлен файл аватара'},
+    #             status=status.HTTP_400_BAD_REQUEST
+    #         )
+
+    #     user.avatar = request.FILES['avatar']
+    #     user.save()
+
+    #     # Используем сериализатор для правильного ответа
+    #     serializer = UserAvatarSerializer(user)
+    #     return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(
         detail=True,
         methods=['post', 'delete'],
         permission_classes=[IsAuthenticated]
     )
-    def subscribe(self, request, id):
+    def subscribe(self, request, id=None):
         user = request.user
-        author = get_object_or_404(User, id=id)
+        try:
+            author = User.objects.get(id=id)
+        except User.DoesNotExist:
+            return Response(
+                {'errors': 'Автор не найден'},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
         if request.method == 'POST':
-            if user == author:
-                return Response(
-                    {'errors': 'Нельзя подписаться на самого себя'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            if Follow.objects.filter(user=user, author=author).exists():
-                return Response(
-                    {'errors': 'Вы уже подписаны на этого пользователя'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+            serializer = SubscribeSerializer(
+                author,
+                data=request.data,
+                context={'request': request}
+            )
+            serializer.is_valid(raise_exception=True)
             Follow.objects.create(user=user, author=author)
-            serializer = self.get_serializer(author)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        if request.method == 'DELETE':
-            follow = Follow.objects.filter(user=user, author=author)
-            if follow.exists():
-                follow.delete()
-                return Response(status=status.HTTP_204_NO_CONTENT)
+        try:
+            subscription = Follow.objects.get(user=user, author=author)
+            subscription.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Follow.DoesNotExist:
             return Response(
-                {'errors': 'Вы не подписаны на этого пользователя'},
+                {'errors': 'Подписка не найдена'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -108,15 +185,18 @@ class CustomUserViewSet(UserViewSet):
         user = request.user
         queryset = User.objects.filter(following__user=user)
         pages = self.paginate_queryset(queryset)
-        serializer = self.get_serializer(pages, many=True)
+        serializer = SubscriptionSerializer(
+            pages,
+            many=True,
+            context={'request': request}
+        )
         return self.get_paginated_response(serializer.data)
 
-    @action(
-        detail=False,
-        methods=['get'],
-        permission_classes=[IsAuthenticated]
-    )
-    def me(self, request):
-        """Возвращает текущего пользователя."""
-        serializer = self.get_serializer(request.user)
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
