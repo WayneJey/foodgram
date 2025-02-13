@@ -1,8 +1,16 @@
-from django_filters import rest_framework as filters
-from .models import Recipe, Tag
+from django_filters.rest_framework import FilterSet, filters
+from recipes.models import Recipe, Tag, Ingredient
 
 
-class RecipeFilter(filters.FilterSet):
+class IngredientFilter(FilterSet):
+    name = filters.CharFilter(lookup_expr='istartswith')
+
+    class Meta:
+        model = Ingredient
+        fields = ('name',)
+
+
+class RecipeFilter(FilterSet):
     tags = filters.ModelMultipleChoiceFilter(
         field_name='tags__slug',
         to_field_name='slug',

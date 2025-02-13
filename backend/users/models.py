@@ -17,6 +17,12 @@ class User(AbstractUser):
         max_length=150,
         verbose_name='Фамилия'
     )
+    avatar = models.ImageField(
+        upload_to='users/avatars/',
+        null=True,
+        blank=True,
+        verbose_name='Аватар'
+    )
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
@@ -27,18 +33,18 @@ class User(AbstractUser):
         verbose_name_plural = 'Пользователи'
 
 
-class Subscription(models.Model):
+class Follow(models.Model):
     """Модель подписки на авторов."""
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='subscriber',
+        related_name='follower',
         verbose_name='Подписчик'
     )
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='subscribing',
+        related_name='following',
         verbose_name='Автор'
     )
 
@@ -48,10 +54,6 @@ class Subscription(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=['user', 'author'],
-                name='unique_subscription'
-            ),
-            models.CheckConstraint(
-                check=~models.Q(user=models.F('author')),
-                name='prevent_self_subscription'
+                name='unique_follow'
             )
         ]

@@ -9,49 +9,32 @@ from .models import (
 
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'slug')
+    list_display = ('name', 'color', 'slug')
     search_fields = ('name', 'slug')
-    ordering = ('name',)
 
 
 @admin.register(Ingredient)
 class IngredientAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'measurement_unit')
+    list_display = ('name', 'measurement_unit')
     search_fields = ('name',)
     list_filter = ('measurement_unit',)
-    ordering = ('name',)
 
 
 class RecipeIngredientInline(admin.TabularInline):
     model = RecipeIngredient
     min_num = 1
     extra = 1
-    raw_id_fields = ('ingredient',)
 
 
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
-    list_display = (
-        'id', 'name', 'author',
-        'get_image_preview', 'get_favorites_count'
-    )
-    search_fields = ('name', 'author__username', 'tags__name')
-    list_filter = ('tags', 'author')
+    list_display = ('name', 'author', 'favorites_count')
+    list_filter = ('author', 'name', 'tags')
     inlines = (RecipeIngredientInline,)
-    raw_id_fields = ('author',)
 
-    def get_image_preview(self, obj):
-        if obj.image:
-            return format_html(
-                '<img src="{}" style="max-height: 50px;">',
-                obj.image.url
-            )
-        return 'Нет изображения'
-    get_image_preview.short_description = 'Изображение'
-
-    def get_favorites_count(self, obj):
+    def favorites_count(self, obj):
         return obj.favorites.count()
-    get_favorites_count.short_description = 'В избранном'
+    favorites_count.short_description = 'В избранном'
 
 
 @admin.register(Favorite)
