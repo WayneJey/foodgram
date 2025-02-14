@@ -1,22 +1,19 @@
 import base64
 
-from django.core.files.base import ContentFile
+from api.pagination import CustomPagination
+from api.serializers import UserSerializer
 from django.core.exceptions import ValidationError
-
+from django.core.files.base import ContentFile
+from djoser.views import UserViewSet
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.response import Response
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.response import Response
 
-from djoser.views import UserViewSet
-
-from api.serializers import UserSerializer
 from .models import Follow, User
-from .serializers import (
-    SubscriptionSerializer, SubscribeSerializer, UserAvatarSerializer
-)
-from api.pagination import CustomPagination
+from .serializers import (SubscribeSerializer, SubscriptionSerializer,
+                          UserAvatarSerializer)
 
 
 class CustomUserViewSet(UserViewSet):

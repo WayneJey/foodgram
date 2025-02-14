@@ -1,29 +1,24 @@
 import base64
-import shortuuid
 
+import shortuuid
+from api.filters import IngredientFilter, RecipeFilter
+from api.pagination import CustomPagination
+from api.permissions import IsAuthorOrReadOnly
 from django.core.files.base import ContentFile
-from django.db.models import Sum, Exists, OuterRef, Value
+from django.db.models import Exists, OuterRef, Sum, Value
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
-from rest_framework import viewsets, status
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
 
-from api.filters import RecipeFilter, IngredientFilter
-from .models import (
-    Tag, Ingredient, Recipe, Favorite, ShoppingCart, RecipeIngredient
-)
-from .serializers import (
-    RecipeSerializer,
-    TagSerializer,
-    IngredientSerializer,
-    RecipeCreateSerializer,
-    RecipeMinifiedSerializer
-)
-from api.permissions import IsAuthorOrReadOnly
-from api.pagination import CustomPagination
+from .models import (Favorite, Ingredient, Recipe, RecipeIngredient,
+                     ShoppingCart, Tag)
+from .serializers import (IngredientSerializer, RecipeCreateSerializer,
+                          RecipeMinifiedSerializer, RecipeSerializer,
+                          TagSerializer)
 
 
 def decode_base64_image(base64_string):
