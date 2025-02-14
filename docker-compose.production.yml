@@ -36,7 +36,7 @@ services:
     image: waynejey/foodgram_nginx
     env_file: .env
     ports:
-      - "80:80"
+      - "8000:80"
     volumes:
       - ../frontend/build:/usr/share/nginx/html/
       - ../docs/:/usr/share/nginx/html/api/docs/
