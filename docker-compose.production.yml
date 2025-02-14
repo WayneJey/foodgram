@@ -28,7 +28,7 @@ services:
     env_file: .env
     command: cp -r /app/build/. /static/
     volumes:
-      - ../frontend/:/app/result_build/
+      - ./frontend/:/app/result_build/
     depends_on:
       - backend
 
