@@ -14,7 +14,7 @@ services:
       - ./.env
 
   backend:
-    build: ./backend
+    image: waynejey/foodgram_backend
     volumes:
       - static_value:/app/static/
       - media_value:/app/media/
@@ -24,15 +24,17 @@ services:
       - ./.env
 
   frontend:
-    build: ./frontend
+    image: waynejey/foodgram_frontend
+    env_file: .env
+    command: cp -r /app/build/. /static/
     volumes:
       - ../frontend/:/app/result_build/
     depends_on:
       - backend
 
   nginx:
-    build: ./nginx/
-    env_file: ./.env
+    image: waynejey/foodgram_nginx
+    env_file: .env
     ports:
       - "80:80"
     volumes:
