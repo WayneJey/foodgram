@@ -7,9 +7,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         tags_data = [
-            {'name': 'Завтрак', 'slug': 'breakfast', 'color': '#E26C2D'},
-            {'name': 'Обед', 'slug': 'lunch', 'color': '#49B64E'},
-            {'name': 'Ужин', 'slug': 'dinner', 'color': '#8775D2'}
+            {'name': 'Завтрак', 'slug': 'breakfast'},
+            {'name': 'Обед', 'slug': 'lunch'},
+            {'name': 'Ужин', 'slug': 'dinner'}
         ]
 
         for tag_data in tags_data:
