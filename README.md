@@ -57,9 +57,12 @@ sudo docker compose -f docker-compose.production.yml exec backend python manage.
 **Waynejey** - разработчик проекта.
 
 
-## Описание проекта
-Информация для ревьюера
-Сайт: https://foodgramwayne.zapto.org
-Админка:
-Логин: waynejey@yandex.ru
-Пароль: wayne
+## Информация для ревьюера
+
+- **Сайт**: https://foodgramwayne.zapto.org
+
+- **Админка**
+- **Логин**: waynejey@yandex.ru
+- **Пароль**: wayne
+
+Коллекцию postman провел, все гуд. Прошелся по чек листам, тоже все нормально
