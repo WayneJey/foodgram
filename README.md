@@ -45,12 +45,11 @@ SECRET_KEY= # Секретный ключ Django
 
 ```bash
 # Запускаем контейнеры
-docker compose -f docker-compose.production.yml up -d
 sudo docker compose -f docker-compose.production.yml up -d
-          sudo docker compose -f docker-compose.production.yml exec backend python manage.py migrate
-          sudo docker compose -f docker-compose.production.yml exec backend python manage.py collectstatic --no-input
-          sudo docker compose -f docker-compose.production.yml exec backend python manage.py load_ingredients
-          sudo docker compose -f docker-compose.production.yml exec backend python manage.py load_tags
+sudo docker compose -f docker-compose.production.yml exec backend python manage.py migrate
+sudo docker compose -f docker-compose.production.yml exec backend python manage.py collectstatic --no-input
+sudo docker compose -f docker-compose.production.yml exec backend python manage.py load_ingredients
+sudo docker compose -f docker-compose.production.yml exec backend python manage.py load_tags
 ```
 
 ## Автор
