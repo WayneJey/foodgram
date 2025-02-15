@@ -43,7 +43,7 @@ SECRET_KEY= # Секретный ключ Django
 
 ### Запуск через Docker
 
-``bash
+```bash
 # Запускаем контейнеры
 docker compose -f docker-compose.production.yml up -d
 sudo docker compose -f docker-compose.production.yml up -d
