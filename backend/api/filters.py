@@ -1,8 +1,11 @@
 from django_filters.rest_framework import FilterSet, filters
+
 from recipes.models import Ingredient, Recipe, Tag
 
 
 class IngredientFilter(FilterSet):
+    """Фильтр для модели Ingredient."""
+
     name = filters.CharFilter(lookup_expr='istartswith')
 
     class Meta:
@@ -11,6 +14,8 @@ class IngredientFilter(FilterSet):
 
 
 class RecipeFilter(FilterSet):
+    """Фильтр для модели Recipe."""
+
     tags = filters.ModelMultipleChoiceFilter(
         field_name='tags__slug',
         to_field_name='slug',

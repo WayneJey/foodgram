@@ -1,9 +1,7 @@
 import base64
+from io import BytesIO
 
 import shortuuid
-from api.filters import IngredientFilter, RecipeFilter
-from api.pagination import CustomPagination
-from api.permissions import IsAuthorOrReadOnly
 from django.core.files.base import ContentFile
 from django.db.models import Exists, OuterRef, Sum, Value
 from django.http import HttpResponse
@@ -14,21 +12,59 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from .models import (Favorite, Ingredient, Recipe, RecipeIngredient,
-                     ShoppingCart, Tag)
-from .serializers import (IngredientSerializer, RecipeCreateSerializer,
-                          RecipeMinifiedSerializer, RecipeSerializer,
-                          TagSerializer)
+from api.filters import IngredientFilter, RecipeFilter
+from api.pagination import CustomPagination
+from api.permissions import IsAuthorOrReadOnly
+
+from .models import (
+    Favorite,
+    Ingredient,
+    Recipe,
+    RecipeIngredient,
+    ShoppingCart,
+    Tag,
+)
+from .serializers import (
+    IngredientSerializer,
+    RecipeCreateSerializer,
+    RecipeMinifiedSerializer,
+    RecipeSerializer,
+    TagSerializer,
+)
 
 
 def decode_base64_image(base64_string):
     """Декодирует base64 в файл изображения."""
+
     format, imgstr = base64_string.split(';base64,')
     ext = format.split('/')[-1]
     return ContentFile(
         base64.b64decode(imgstr),
         name=f'recipe.{ext}'
     )
+
+
+def generate_shopping_list(ingredients):
+    """Генерирует список покупок в виде plain текста."""
+
+    shopping_list = ['Список покупок:\n']
+    for ingredient in ingredients:
+        shopping_list.append(
+            f'- {ingredient["ingredient__name"]} '
+            f'({ingredient["ingredient__measurement_unit"]}) — '
+            f'{ingredient["total"]}\n'
+        )
+    return ''.join(shopping_list)
+
+
+def create_shopping_list_file(ingredients):
+    """Создает файл со списком покупок и возвращает буфер BytesIO."""
+
+    shopping_list_text = generate_shopping_list(ingredients)
+    buffer = BytesIO()
+    buffer.write(shopping_list_text.encode('utf-8'))
+    buffer.seek(0)
+    return buffer
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -46,13 +82,7 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = None
     filter_backends = [DjangoFilterBackend]
     filterset_class = IngredientFilter
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        name = self.request.query_params.get('name')
-        if name:
-            return queryset.filter(name__istartswith=name)
-        return queryset
+    permission_classes = [AllowAny]
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -71,7 +101,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = Recipe.objects.all()
+        queryset = Recipe.objects.select_related(
+            'author').prefetch_related('tags', 'ingredients')
 
         if user.is_authenticated:
             queryset = queryset.annotate(
@@ -93,23 +124,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 is_favorited=Value(False),
                 is_in_shopping_cart=Value(False)
             )
-
-        author = self.request.query_params.get('author')
-        if author:
-            queryset = queryset.filter(author=author)
-
-        tags = self.request.query_params.getlist('tags')
-        if tags:
-            queryset = queryset.filter(tags__slug__in=tags).distinct()
-
-        is_favorited = self.request.query_params.get('is_favorited')
-        if is_favorited and user.is_authenticated:
-            queryset = queryset.filter(favorites__user=user)
-
-        is_in_shopping_cart = self.request.query_params.get(
-            'is_in_shopping_cart')
-        if is_in_shopping_cart and user.is_authenticated:
-            queryset = queryset.filter(shopping_cart__user=user)
 
         return queryset
 
@@ -215,16 +229,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
             'ingredient__measurement_unit'
         ).annotate(total=Sum('amount'))
 
-        shopping_list = ['Список покупок:\n']
-        for ingredient in ingredients:
-            shopping_list.append(
-                f'- {ingredient["ingredient__name"]} '
-                f'({ingredient["ingredient__measurement_unit"]}) — '
-                f'{ingredient["total"]}\n'
-            )
+        shopping_list_file = create_shopping_list_file(ingredients)
 
         response = HttpResponse(
-            ''.join(shopping_list),
+            shopping_list_file,
             content_type='text/plain'
         )
         response['Content-Disposition'] = (

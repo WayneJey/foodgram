@@ -1,7 +1,5 @@
 import base64
 
-from api.pagination import CustomPagination
-from api.serializers import UserSerializer
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from djoser.views import UserViewSet
@@ -11,13 +9,19 @@ from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from .models import Follow, User
-from .serializers import (SubscribeSerializer, SubscriptionSerializer,
-                          UserAvatarSerializer)
+from api.pagination import CustomPagination
+from api.serializers import (
+    SubscribeSerializer,
+    SubscriptionSerializer,
+    UserAvatarSerializer,
+    UserSerializer,
+)
+from users.models import Follow, User
 
 
 class CustomUserViewSet(UserViewSet):
     """Вьюсет для работы с пользователями."""
+
     queryset = User.objects.all()
     serializer_class = UserSerializer
     pagination_class = CustomPagination

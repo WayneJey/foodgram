@@ -1,27 +1,34 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+from .constants import (
+    EMAIL_MAX_LENGTH,
+    FIRST_NAME_MAX_LENGTH,
+    LAST_NAME_MAX_LENGTH,
+)
+
 
 class User(AbstractUser):
-    """Кастомная модель пользователя."""
+    """Пользователь с дополнительными полями."""
+
     email = models.EmailField(
         'Email',
-        max_length=254,
+        max_length=EMAIL_MAX_LENGTH,
         unique=True,
     )
     first_name = models.CharField(
         'Имя',
-        max_length=150,
+        max_length=FIRST_NAME_MAX_LENGTH,
     )
     last_name = models.CharField(
         'Фамилия',
-        max_length=150,
+        max_length=LAST_NAME_MAX_LENGTH,
     )
     avatar = models.ImageField(
         'Аватар',
         upload_to='avatars/',
-        null=True,
-        blank=True
+        blank=True,
+        default=''
     )
 
     USERNAME_FIELD = 'email'
@@ -37,7 +44,8 @@ class User(AbstractUser):
 
 
 class Follow(models.Model):
-    """Модель подписки на авторов."""
+    """Подписка на авторов."""
+
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,

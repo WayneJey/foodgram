@@ -12,12 +12,19 @@ djangorestframework_simplejwt==5.4.0
 djoser==2.2.0
 drf-extra-fields==3.7.0
 filetype==1.2.0
+flake8==7.1.2
+gunicorn==21.2.0
 idna==3.10
+isort==6.0.0
+mccabe==0.7.0
 oauthlib==3.2.2
 packaging==24.2
 Pillow==10.1.0
 psycopg2-binary==2.9.9
+pycodestyle==2.12.1
 pycparser==2.22
+pydocstyle==6.3.0
+pyflakes==3.2.0
 PyJWT==2.10.1
 python-dotenv==1.0.0
 python3-openid==3.2.0
@@ -25,6 +32,7 @@ pytz==2025.1
 requests==2.32.3
 requests-oauthlib==2.0.0
 shortuuid==1.0.13
+snowballstemmer==2.2.0
 social-auth-app-django==5.4.2
 social-auth-core==4.5.4
 sqlparse==0.5.3
