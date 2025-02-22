@@ -236,6 +236,11 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
                     'Отсутствует id ингредиента'
                 )
 
+            if not Ingredient.objects.filter(id=ingredient_id).exists():
+                raise serializers.ValidationError(
+                    f'Ингредиент с id {ingredient_id} не существует'
+                )
+
             if ingredient_id in ingredients_set:
                 raise serializers.ValidationError(
                     'Ингредиенты не должны повторяться'
@@ -286,8 +291,17 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         return recipe
 
     def update(self, instance, validated_data):
-        ingredients_data = validated_data.pop('ingredients')
-        tags_data = validated_data.pop('tags')
+        ingredients_data = validated_data.pop('ingredients', None)
+        tags_data = validated_data.pop('tags', None)
+
+        if ingredients_data is None:
+            raise serializers.ValidationError(
+                {'ingredients': 'Поле обязательно для обновления'}
+            )
+        if tags_data is None:
+            raise serializers.ValidationError(
+                {'tags': 'Поле обязательно для обновления'}
+            )
 
         instance.recipe_ingredients.all().delete()
         self.update_tags_and_ingredients(instance, tags_data, ingredients_data)

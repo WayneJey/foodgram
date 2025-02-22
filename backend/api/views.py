@@ -50,25 +50,18 @@ def decode_base64_image(base64_string):
     )
 
 
-def generate_shopping_list(ingredients):
-    """Генерирует список покупок в виде plain текста."""
-
-    shopping_list = ['Список покупок:\n']
-    for ingredient in ingredients:
-        shopping_list.append(
-            f'- {ingredient["ingredient__name"]} '
-            f'({ingredient["ingredient__measurement_unit"]}) — '
-            f'{ingredient["total"]}\n'
-        )
-    return ''.join(shopping_list)
-
-
 def create_shopping_list_file(ingredients):
     """Создает файл со списком покупок и возвращает буфер BytesIO."""
 
-    shopping_list_text = generate_shopping_list(ingredients)
+    shopping_list = "Список покупок:\n"
+    for ingredient in ingredients:
+        shopping_list += (
+            f"{ingredient['ingredient__name']} - "
+            f"{ingredient['total']} "
+            f"{ingredient['ingredient__measurement_unit']}\n"
+        )
     buffer = BytesIO()
-    buffer.write(shopping_list_text.encode('utf-8'))
+    buffer.write(shopping_list.encode('utf-8'))
     buffer.seek(0)
     return buffer
 
@@ -177,6 +170,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             serializer = RecipeMinifiedSerializer(recipe)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+        recipe = get_object_or_404(Recipe, id=pk)
         deleted, _ = Favorite.objects.filter(
             user=request.user, recipe_id=pk).delete()
         if deleted:
@@ -192,12 +186,17 @@ class RecipeViewSet(viewsets.ModelViewSet):
         permission_classes=[IsAuthenticated]
     )
     def shopping_cart(self, request, pk=None):
-        if request.method == 'POST':
-            recipe = get_object_or_404(Recipe, id=pk)
+        try:
+            recipe = Recipe.objects.get(id=pk)
+        except Recipe.DoesNotExist:
+            return Response(
+                {'errors': 'Рецепт не найден'},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
-            if ShoppingCart.objects.filter(
-                user=request.user, recipe=recipe
-            ).exists():
+        if request.method == 'POST':
+            if ShoppingCart.objects.filter(user=request.user,
+                                           recipe=recipe).exists():
                 return Response(
                     {'errors': 'Рецепт уже в списке покупок'},
                     status=status.HTTP_400_BAD_REQUEST
@@ -207,33 +206,38 @@ class RecipeViewSet(viewsets.ModelViewSet):
             serializer = RecipeMinifiedSerializer(recipe)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        deleted, _ = ShoppingCart.objects.filter(
-            user=request.user, recipe_id=pk).delete()
-        if deleted:
+        try:
+            shopping_cart = ShoppingCart.objects.get(
+                user=request.user, recipe=recipe
+            )
+            shopping_cart.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
-        return Response(
-            {'errors': 'Рецепт не найден в списке покупок'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+        except ShoppingCart.DoesNotExist:
+            return Response(
+                {'errors': 'Рецепт не найден в списке покупок'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
     @action(
         detail=False,
         permission_classes=[IsAuthenticated]
     )
     def download_shopping_cart(self, request):
+        user = request.user
         ingredients = RecipeIngredient.objects.filter(
-            recipe__shopping_cart__user=request.user
+            recipe__shoppingcarts__user=user
         ).values(
-            'ingredient__name',
-            'ingredient__measurement_unit'
+            'ingredient__name', 'ingredient__measurement_unit'
         ).annotate(total=Sum('amount'))
 
-        shopping_list_file = create_shopping_list_file(ingredients)
+        if not ingredients.exists():
+            return Response(
+                {'error': 'Список покупок пуст'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        response = HttpResponse(
-            shopping_list_file,
-            content_type='text/plain'
-        )
+        shopping_list_file = create_shopping_list_file(ingredients)
+        response = HttpResponse(shopping_list_file, content_type='text/plain')
         response['Content-Disposition'] = (
             'attachment; filename="shopping_list.txt"'
         )
@@ -341,6 +345,7 @@ class CustomUserViewSet(UserViewSet):
             Follow.objects.create(user=user, author=author)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+        author = get_object_or_404(User, id=id)
         deleted, _ = Follow.objects.filter(user=user, author_id=id).delete()
         if deleted:
             return Response(status=status.HTTP_204_NO_CONTENT)

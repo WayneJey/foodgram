@@ -57,7 +57,7 @@ class Ingredient(models.Model):
 
 
 class Recipe(models.Model):
-    """Модель для хранения информации о рецептах."""
+    """Информация о рецептах."""
 
     author = models.ForeignKey(
         User,
@@ -163,7 +163,7 @@ class BaseUserRecipeRelation(models.Model):
 
 
 class Favorite(BaseUserRecipeRelation):
-    """Модель для хранения избранных рецептов пользователей."""
+    """Хранение избранных рецептов пользователей."""
 
     class Meta(BaseUserRecipeRelation.Meta):
         verbose_name = 'Избранное'
@@ -171,7 +171,7 @@ class Favorite(BaseUserRecipeRelation):
 
 
 class ShoppingCart(BaseUserRecipeRelation):
-    """Модель для списка покупок пользователя."""
+    """Список покупок пользователя."""
 
     class Meta(BaseUserRecipeRelation.Meta):
         verbose_name = 'Список покупок'
