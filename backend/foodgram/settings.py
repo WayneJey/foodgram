@@ -148,11 +148,19 @@ DJOSER = {
 AUTH_USER_MODEL = 'users.User'
 
 # Максимальный размер загружаемого файла
-DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760
 
 # Настройки для работы с изображениями
 ALLOWED_IMAGE_FORMATS = ['jpg', 'jpeg', 'png']
-# MAX_IMAGE_SIZE = 5242880  # 5MB
+
+# Константы
+PAGE_SIZE = 6
+PAGE_SIZE_QUERY_PARAM = 'limit'
+MAX_PAGE_SIZE = 100
+EMAIL_MAX_LENGTH = 254
+FIRST_NAME_MAX_LENGTH = 150
+LAST_NAME_MAX_LENGTH = 150
+
 
 ADMIN_SITE_HEADER = 'Администрирование Foodgram'
 ADMIN_SITE_TITLE = 'Foodgram'

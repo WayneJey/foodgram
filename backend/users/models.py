@@ -1,11 +1,6 @@
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-
-from .constants import (
-    EMAIL_MAX_LENGTH,
-    FIRST_NAME_MAX_LENGTH,
-    LAST_NAME_MAX_LENGTH,
-)
 
 
 class User(AbstractUser):
@@ -13,16 +8,16 @@ class User(AbstractUser):
 
     email = models.EmailField(
         'Email',
-        max_length=EMAIL_MAX_LENGTH,
+        max_length=settings.EMAIL_MAX_LENGTH,
         unique=True,
     )
     first_name = models.CharField(
         'Имя',
-        max_length=FIRST_NAME_MAX_LENGTH,
+        max_length=settings.FIRST_NAME_MAX_LENGTH,
     )
     last_name = models.CharField(
         'Фамилия',
-        max_length=LAST_NAME_MAX_LENGTH,
+        max_length=settings.LAST_NAME_MAX_LENGTH,
     )
     avatar = models.ImageField(
         'Аватар',
