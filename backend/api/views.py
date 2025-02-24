@@ -19,6 +19,7 @@ from api.pagination import CustomPagination
 from api.permissions import IsAuthorOrReadOnly
 from api.serializers import (
     FavoriteSerializer,
+    FollowSerializer,
     IngredientSerializer,
     RecipeCreateSerializer,
     RecipeMinifiedSerializer,
@@ -29,7 +30,6 @@ from api.serializers import (
     TagSerializer,
     UserAvatarSerializer,
     UserSerializer,
-    FollowSerializer,
 )
 from recipes.models import (
     Favorite,
