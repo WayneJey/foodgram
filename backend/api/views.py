@@ -18,15 +18,18 @@ from api.filters import IngredientFilter, RecipeFilter
 from api.pagination import CustomPagination
 from api.permissions import IsAuthorOrReadOnly
 from api.serializers import (
+    FavoriteSerializer,
     IngredientSerializer,
     RecipeCreateSerializer,
     RecipeMinifiedSerializer,
     RecipeSerializer,
+    ShoppingCartSerializer,
     SubscribeSerializer,
     SubscriptionSerializer,
     TagSerializer,
     UserAvatarSerializer,
     UserSerializer,
+    FollowSerializer,
 )
 from recipes.models import (
     Favorite,
@@ -66,8 +69,9 @@ def create_shopping_list_file(ingredients):
 
 def handle_recipe_relation(request, pk, model_class, serializer_class):
     """Обрабатывает добавление/удаление рецепта в избранное или корзину."""
+    recipe = get_object_or_404(Recipe, id=pk)
+
     if request.method == 'POST':
-        recipe = get_object_or_404(Recipe, id=pk)
         if model_class.objects.filter(
             user=request.user,
             recipe=recipe
@@ -77,14 +81,15 @@ def handle_recipe_relation(request, pk, model_class, serializer_class):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        model_class.objects.create(user=request.user, recipe=recipe)
-        serializer = RecipeMinifiedSerializer(recipe)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    get_object_or_404(Recipe, id=pk)
+        data = {'user': request.user.id, 'recipe': recipe.id}
+        serializer = serializer_class(data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        recipe_serializer = RecipeMinifiedSerializer(recipe)
+        return Response(recipe_serializer.data, status=status.HTTP_201_CREATED)
 
     deleted, _ = model_class.objects.filter(
-        user=request.user, recipe_id=pk
+        user=request.user, recipe=recipe
     ).delete()
     if deleted:
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -96,24 +101,22 @@ def handle_recipe_relation(request, pk, model_class, serializer_class):
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
     """Вьюсет для работы с тегами."""
+
+    queryset = Tag.objects.all()
     serializer_class = TagSerializer
     pagination_class = None
     permission_classes = [AllowAny]
 
-    def get_queryset(self):
-        return Tag.objects.all()
-
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     """Вьюсет для работы с ингредиентами."""
+
+    queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     pagination_class = None
     filter_backends = [DjangoFilterBackend]
     filterset_class = IngredientFilter
     permission_classes = [AllowAny]
-
-    def get_queryset(self):
-        return Ingredient.objects.all()
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -183,7 +186,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def favorite(self, request, pk=None):
         return handle_recipe_relation(
-            request, pk, Favorite, RecipeMinifiedSerializer
+            request, pk, Favorite, FavoriteSerializer
         )
 
     @action(
@@ -193,7 +196,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def shopping_cart(self, request, pk=None):
         return handle_recipe_relation(
-            request, pk, ShoppingCart, RecipeMinifiedSerializer
+            request, pk, ShoppingCart, ShoppingCartSerializer
         )
 
     @action(
@@ -218,6 +221,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
 class CustomUserViewSet(UserViewSet):
     """Вьюсет для работы с пользователями."""
+
     serializer_class = UserSerializer
     pagination_class = CustomPagination
     parser_classes = (JSONParser, MultiPartParser, FormParser)
@@ -294,19 +298,22 @@ class CustomUserViewSet(UserViewSet):
     )
     def subscribe(self, request, id=None):
         user = request.user
-
         if request.method == 'POST':
             author = get_object_or_404(User, id=id)
 
-            serializer = SubscribeSerializer(
+            data = {'user': user.id, 'author': author.id}
+            serializer = FollowSerializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+            subscription_serializer = SubscribeSerializer(
                 author,
-                data=request.data,
                 context={'request': request}
             )
-            serializer.is_valid(raise_exception=True)
-            Follow.objects.create(user=user, author=author)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-
+            return Response(
+                subscription_serializer.data,
+                status=status.HTTP_201_CREATED
+            )
         author = get_object_or_404(User, id=id)
         deleted, _ = Follow.objects.filter(user=user, author_id=id).delete()
         if deleted:
