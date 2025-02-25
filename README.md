@@ -60,6 +60,7 @@ sudo docker compose -f docker-compose.production.yml exec backend python manage.
 ## Информация для ревьюера
 
 - **Сайт**: https://foodgramwayne.zapto.org
+- **ip**: 51.250.102.159
 
 - **Админка**
 - **Логин**: waynejey@yandex.ru

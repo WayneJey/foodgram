@@ -69,9 +69,8 @@ def create_shopping_list_file(ingredients):
 
 def handle_recipe_relation(request, pk, model_class, serializer_class):
     """Обрабатывает добавление/удаление рецепта в избранное или корзину."""
-    recipe = get_object_or_404(Recipe, id=pk)
-
     if request.method == 'POST':
+        recipe = get_object_or_404(Recipe, id=pk)
         if model_class.objects.filter(
             user=request.user,
             recipe=recipe
@@ -89,7 +88,7 @@ def handle_recipe_relation(request, pk, model_class, serializer_class):
         return Response(recipe_serializer.data, status=status.HTTP_201_CREATED)
 
     deleted, _ = model_class.objects.filter(
-        user=request.user, recipe=recipe
+        user=request.user, recipe_id=pk
     ).delete()
     if deleted:
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -300,7 +299,6 @@ class CustomUserViewSet(UserViewSet):
         user = request.user
         if request.method == 'POST':
             author = get_object_or_404(User, id=id)
-
             data = {'user': user.id, 'author': author.id}
             serializer = FollowSerializer(data=data)
             serializer.is_valid(raise_exception=True)
@@ -314,7 +312,7 @@ class CustomUserViewSet(UserViewSet):
                 subscription_serializer.data,
                 status=status.HTTP_201_CREATED
             )
-        author = get_object_or_404(User, id=id)
+
         deleted, _ = Follow.objects.filter(user=user, author_id=id).delete()
         if deleted:
             return Response(status=status.HTTP_204_NO_CONTENT)
