@@ -17,7 +17,7 @@ Foodgram — это веб-приложение для обмена рецепт
 
 - **Backend**: Python 3, Django, Django Rest Framework (DRF)
 - **Аутентификация**: Djoser
-- **База данных**: PostgreSQL / SQLite (для локального тестирования)
+- **База данных**: PostgreSQL
 - **Контейнеризация**: Docker, Docker Compose
 - **Веб-сервер**: Nginx
 - **CI/CD**: GitHub Actions
